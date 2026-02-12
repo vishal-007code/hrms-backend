@@ -2,7 +2,6 @@ from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import and_
 from sqlalchemy.orm import Session, joinedload
 
 from app.db.session import get_db
@@ -13,28 +12,18 @@ from app.schemas.attendance import (
     AttendanceListResponse,
     AttendanceRead,
     AttendanceStatus,
+    AttendanceUpdate,
 )
-from fastapi import HTTPException, Depends
-from sqlalchemy.orm import Session
-from app.db.session import get_db
-from app.models.attendance import Attendance
-from app.schemas.attendance import AttendanceUpdate, AttendanceResponse
-
 
 router = APIRouter(prefix="/attendance", tags=["attendance"])
 
 
-@router.post(
-    "",
-    response_model=AttendanceRead,
-    status_code=status.HTTP_200_OK,  # 200 because it might update
-)
+@router.post("", response_model=AttendanceRead)
 def upsert_attendance(
     payload: AttendanceCreate,
     db: Session = Depends(get_db)
-) -> AttendanceRead:
-    """Create or update attendance (UPSERT logic)."""
-
+):
+    # Find employee by public employee_id
     employee = (
         db.query(Employee)
         .filter(Employee.employee_id == payload.employee_id)
@@ -47,23 +36,21 @@ def upsert_attendance(
             detail="Employee not found.",
         )
 
-    # Check if attendance already exists
+    # Check if attendance exists
     record = (
         db.query(Attendance)
         .filter(
-            Attendance.employee_id == employee.id,
+            Attendance.employee_id == employee.employee_id,  # FIXED
             Attendance.attendance_date == payload.attendance_date,
         )
         .first()
     )
 
     if record:
-        # UPDATE existing
         record.status = payload.status.value
     else:
-        # CREATE new
         record = Attendance(
-            employee_id=employee.id,
+            employee_id=employee.employee_id,  # FIXED
             attendance_date=payload.attendance_date,
             status=payload.status.value,
         )
@@ -81,42 +68,39 @@ def upsert_attendance(
     )
 
 
-
 @router.get("", response_model=AttendanceListResponse)
 def list_attendance(
-    employee_id: Optional[str] = Query(
-        None, description="Filter by public employee_id."
-    ),
-    date_filter: Optional[date] = Query(
-        None, alias="date", description="Filter by exact attendance date."
-    ),
+    employee_id: Optional[str] = Query(None),
+    date_filter: Optional[date] = Query(None, alias="date"),
     db: Session = Depends(get_db),
-) -> AttendanceListResponse:
+):
     query = (
         db.query(Attendance)
         .options(joinedload(Attendance.employee))
-        .join(Employee)
+        .join(Employee, Attendance.employee_id == Employee.employee_id)  # FIXED JOIN
     )
 
     if employee_id:
         query = query.filter(Employee.employee_id == employee_id)
+
     if date_filter:
         query = query.filter(Attendance.attendance_date == date_filter)
 
     records = query.order_by(Attendance.attendance_date.desc()).all()
-    items: list[AttendanceRead] = []
-    for r in records:
-        items.append(
-            AttendanceRead(
-                id=r.id,
-                employee_id=r.employee.employee_id,
-                full_name=r.employee.full_name,
-                attendance_date=r.attendance_date,
-                status=AttendanceStatus(r.status),
-            )
+
+    items = [
+        AttendanceRead(
+            id=r.id,
+            employee_id=r.employee.employee_id,
+            full_name=r.employee.full_name,
+            attendance_date=r.attendance_date,
+            status=AttendanceStatus(r.status),
         )
+        for r in records
+    ]
 
     return AttendanceListResponse(total=len(items), items=items)
+
 
 @router.put("/{attendance_id}", response_model=AttendanceRead)
 def update_attendance(
@@ -153,4 +137,3 @@ def update_attendance(
         attendance_date=record.attendance_date,
         status=AttendanceStatus(record.status),
     )
-

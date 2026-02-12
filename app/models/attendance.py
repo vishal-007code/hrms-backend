@@ -1,38 +1,34 @@
-from datetime import date
-
-from sqlalchemy import (
-    Column,
-    Date,
-    Enum,
-    ForeignKey,
-    Integer,
-    UniqueConstraint,
-)
+from sqlalchemy import Column, Integer, String, Date, Enum, ForeignKey
 from sqlalchemy.orm import relationship
-
 from app.db.session import Base
+import enum
+
+
+class AttendanceStatus(str, enum.Enum):
+    Present = "Present"
+    Absent = "Absent"
 
 
 class Attendance(Base):
     __tablename__ = "attendance"
-    __table_args__ = (
-        UniqueConstraint(
-            "employee_id", "attendance_date", name="uq_attendance_employee_date"
-        ),
-    )
 
     id = Column(Integer, primary_key=True, index=True)
+
     employee_id = Column(
-        Integer,
-        ForeignKey("employees.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
+        String(50),
+        ForeignKey("employees.employee_id"),
+        nullable=False
     )
-    attendance_date = Column(Date, nullable=False, index=True, default=date.today)
+
+    attendance_date = Column(Date, nullable=False)
+
     status = Column(
-        Enum("Present", "Absent", name="attendance_status"),
-        nullable=False,
+        Enum(AttendanceStatus),
+        nullable=False
     )
 
-    employee = relationship("Employee", backref="attendance_records")
-
+    employee = relationship(
+        "Employee",
+        primaryjoin="Attendance.employee_id == Employee.employee_id",
+        backref="attendance_records"
+    )

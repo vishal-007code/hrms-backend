@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class EmployeeBase(BaseModel):
@@ -16,11 +16,10 @@ class EmployeeCreate(EmployeeBase):
 
 
 class EmployeeRead(EmployeeBase):
-    id: int
-    created_at: datetime
+  id: int
+  created_at: datetime
 
-    class Config:
-        orm_mode = True
+  model_config = ConfigDict(from_attributes=True)
 
 
 class EmployeeListResponse(BaseModel):

@@ -4,9 +4,17 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-DATABASE_URL = settings.DATABASE_URL
+connect_args = (
+    {"check_same_thread": False}
+    if settings.DATABASE_URL.startswith("sqlite")
+    else {}
+)
 
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(
+    settings.DATABASE_URL,
+    pool_pre_ping=True,
+    connect_args=connect_args,
+)
 
 SessionLocal = sessionmaker(
     autocommit=False,
@@ -17,10 +25,10 @@ SessionLocal = sessionmaker(
 Base = declarative_base()
 
 
-# ✅ THIS IS WHAT YOU ARE MISSING
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+

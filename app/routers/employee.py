@@ -1,10 +1,9 @@
-from typing import List, Optional
+from datetime import datetime, timezone
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
-from fastapi import Response
-
 
 from app.db.session import get_db
 from app.models.employee import Employee
@@ -18,7 +17,10 @@ router = APIRouter(prefix="/employees", tags=["employees"])
     response_model=EmployeeRead,
     status_code=status.HTTP_201_CREATED,
 )
-def create_employee(payload: EmployeeCreate, db: Session = Depends(get_db)) -> Employee:
+def create_employee(
+    payload: EmployeeCreate,
+    db: Session = Depends(get_db),
+) -> Employee:
     """Create a new employee with a unique employee_id."""
     existing = (
         db.query(Employee)
@@ -39,11 +41,10 @@ def create_employee(payload: EmployeeCreate, db: Session = Depends(get_db)) -> E
     )
 
     db.add(employee)
-    db.commit()          
+    db.commit()
     db.refresh(employee)
 
     return employee
-
 
 
 @router.get("", response_model=EmployeeListResponse)
@@ -54,7 +55,6 @@ def list_employees(
     ),
     db: Session = Depends(get_db),
 ) -> EmployeeListResponse:
-    """Return all employees, optionally filtered by a simple search query."""
     query = db.query(Employee)
     if q:
         like = f"%{q}%"
@@ -69,13 +69,11 @@ def list_employees(
 
     items = query.order_by(Employee.created_at.desc()).all()
     total = len(items)
-    return EmployeeListResponse(total=total, items=items)
-
+    employee_reads = [EmployeeRead.model_validate(item) for item in items]
+    return EmployeeListResponse(total=total, items=employee_reads)
 
 @router.delete("/{employee_id}", status_code=204)
 def delete_employee(employee_id: str, db: Session = Depends(get_db)):
-    print("DELETE FUNCTION CALLED:", employee_id)  # 👈 ADD THIS
-
     employee = (
         db.query(Employee)
         .filter(Employee.employee_id == employee_id)
@@ -88,9 +86,4 @@ def delete_employee(employee_id: str, db: Session = Depends(get_db)):
     db.delete(employee)
     db.commit()
 
-    print("DELETED SUCCESSFULLY")
-
     return Response(status_code=204)
-
-
-

@@ -1,19 +1,16 @@
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
-from pydantic import BaseSettings
-from typing import List
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env")
+
     PROJECT_NAME: str = "HRMS Lite API"
     API_V1_PREFIX: str = "/api"
-    DATABASE_URL: str
-    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:5173"]
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    DATABASE_URL: str = "sqlite:///./hrms_lite.db"
+    BACKEND_CORS_ORIGINS: str = ""
 
 
-@lru_cache()
-def get_settings() -> Settings:
+@lru_cache
+def get_settings():
     return Settings()

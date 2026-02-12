@@ -2,7 +2,7 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AttendanceStatus(str, Enum):
@@ -27,8 +27,7 @@ class AttendanceRead(BaseModel):
     attendance_date: date
     status: AttendanceStatus
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AttendanceListResponse(BaseModel):
@@ -38,10 +37,9 @@ class AttendanceListResponse(BaseModel):
 
 class AttendanceUpdate(BaseModel):
     attendance_date: Optional[date] = None
-    status: Optional[str] = None
+    status: Optional[AttendanceStatus] = None
 
 class AttendanceResponse(AttendanceBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

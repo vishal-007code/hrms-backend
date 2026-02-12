@@ -24,7 +24,12 @@ def get_dashboard_summary(db: Session = Depends(get_db)) -> DashboardSummary:
     """Return key dashboard metrics for today."""
     today = date.today()
 
-    total_employees = db.query(func.count(Employee.id)).scalar() or 0
+    total_employees = (
+        db.query(func.count(Employee.id))
+        .filter(Employee.deleted_at.is_(None))
+        .scalar()
+        or 0
+    )
 
     present_today = (
         db.query(func.count(Attendance.id))
