@@ -21,7 +21,6 @@ class DashboardSummary(BaseModel):
 
 @router.get("/summary", response_model=DashboardSummary)
 def get_dashboard_summary(db: Session = Depends(get_db)) -> DashboardSummary:
-    """Return key dashboard metrics for today."""
     today = date.today()
 
     total_employees = (

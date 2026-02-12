@@ -21,7 +21,6 @@ def create_employee(
     payload: EmployeeCreate,
     db: Session = Depends(get_db),
 ) -> Employee:
-    """Create a new employee with a unique employee_id."""
     existing = (
         db.query(Employee)
         .filter(Employee.employee_id == payload.employee_id)
