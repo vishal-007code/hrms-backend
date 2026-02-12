@@ -18,30 +18,29 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title=settings.PROJECT_NAME)
 
-    # CORS
+    
     if settings.BACKEND_CORS_ORIGINS:
         origins = [str(origin) for origin in settings.BACKEND_CORS_ORIGINS]
     else:
-        # Development-friendly default: allow all
+        
         origins = ["*"]
 
     app.add_middleware(
         CORSMiddleware,
-        # allow_origins=origins,
+        
         allow_origins=[
-            "http://localhost:5173",   # Vite frontend
-        ],
+            "http://localhost:5173", "https://hrms-lite-1.netlify.app/"          ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
-    # Include routers
+    
     app.include_router(employee.router, prefix=settings.API_V1_PREFIX)
     app.include_router(attendance.router, prefix=settings.API_V1_PREFIX)
     app.include_router(dashboard.router, prefix=settings.API_V1_PREFIX)
 
-    # Create tables on startup (simple, suitable for small apps)
+
     @app.on_event("startup")
     def on_startup() -> None:
         Base.metadata.create_all(bind=engine)
